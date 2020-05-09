@@ -106,13 +106,6 @@ def find_best_frame(source, driving, cpu=False):
             frame_num = i
     return frame_num
 
-def trim_resize(img):
-    img = np.array(img)
-    img = img[:,80:560,:]
-    img = np.resize(img,[480,480,3])
-    img = cv2.resize(img,(256,256))
-    return img
-
 if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("--config", required=True, help="path to config")
@@ -145,40 +138,37 @@ if __name__ == "__main__":
 
     #movie -> video capture
     capture = cv2.VideoCapture(0)
-    #初期画像を撮影
-    while(True):
-        ret, frame = capture.read()
-        init_frame = trim_resize(frame)
-        cv2.imshow('drive',init_frame)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
-    init_frame  = cv2.cvtColor(init_frame, cv2.COLOR_BGR2RGB)
 
     while(True):
         frames = []
-        ret, frame = capture.read()
-        driving_video_re = trim_resize(frame)
-        cv2.imshow('drive',driving_video_re)
-        driving_video_re = cv2.cvtColor(driving_video_re, cv2.COLOR_BGR2RGB)
+        for i in range(10):
+            ret, frame = capture.read()
 
-        frames.append(init_frame)
-        frames.append(driving_video_re)
+        for i in range(300):
+            ret, frame = capture.read()
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            driving_video = np.array(frame)
+            driving_video = driving_video[:,80:560,:]
+            driving_video = np.resize(driving_video,[480,480,3])
+            driving_video_re = cv2.resize(driving_video,(256,256))
+            cv2.imshow('drive',driving_video_re)
+            frames.append(driving_video_re)
         driving_video_re = np.array(frames)
+        # print(frames[0])
         print(driving_video_re.shape)
 
         #儀式　無いと崩れる
         driving_video_re = [resize(frame, (256, 256))[..., :3] for frame in driving_video_re]
         predictions = make_animation(source_image, driving_video_re, generator, kp_detector, relative=opt.relative, adapt_movement_scale=opt.adapt_scale, cpu=opt.cpu)
-
-        prediction = cv2.cvtColor(predictions[1], cv2.COLOR_BGR2RGB)
-        cv2.imshow('predictions',prediction)
+        
  
         
         # cv2.imshow('predictions',predictions)
-        # imageio.mimsave("drive"+str(datetime.datetime.fromtimestamp(0))+".mp4", [img_as_ubyte(frame) for frame in driving_video_re], fps=30)
-        # imageio.mimsave("result"+str(datetime.datetime.fromtimestamp(0))+".mp4", [img_as_ubyte(frame) for frame in predictions], fps=30)
+        imageio.mimsave("drive"+str(datetime.datetime.fromtimestamp(0))+".mp4", [img_as_ubyte(frame) for frame in driving_video_re], fps=30)
+        imageio.mimsave("result"+str(datetime.datetime.fromtimestamp(0))+".mp4", [img_as_ubyte(frame) for frame in predictions], fps=30)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
+        break
     capture.release()
     cv2.destroyAllWindows()
     
